@@ -13,7 +13,7 @@ _base	SLAVE_HEADER					; ws_security + ws_id
 	dc.w	WHDLF_NoError
     IFD CHIP_ONLY
 	; debug slave runs with dev version which consumes more memory
-	dc.l	$200000					; ws_basememsize
+	dc.l	$1E0000					; ws_basememsize
 	ELSE
 	dc.l	CHIPSIZE
 	ENDC
@@ -63,7 +63,7 @@ _config
 	ENDC
 
 DECL_VERSION:MACRO
-	dc.b	"1.1"
+	dc.b	"1.2"
 	IFD BARFLY
 		dc.b	" "
 		INCBIN	"T:date"
@@ -74,7 +74,11 @@ DECL_VERSION:MACRO
 	ENDC
 	ENDM
 _data   dc.b    0
-_name	dc.b	'Gyruss (2MB)',0
+_name	dc.b	'Gyruss (2MB)'
+	IFD	CHIP_ONLY
+	dc.b	" (cd32load slave)"
+	ENDC
+		dc.b	0
 _copy	dc.b	'2025 JOTD',0
 _info
     dc.b    "Music by no9",0

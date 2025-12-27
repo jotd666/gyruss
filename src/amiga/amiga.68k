@@ -2450,6 +2450,7 @@ compute_tile_xy:
 * < D1: color code
 
 update_bg_tile:
+	WAIT_BLIT			| rarely interferes with sprites, but...
 	moveq	#0,d2	| mask up to 255
 	move.b	d0,d2			| tile code
 	moveq	#0,d3
