@@ -1,0 +1,121 @@
+PROGNAME = gyruss
+MAIN = ..\$(PROGNAME)
+
+
+ifdef RELEASE_BUILD
+OPT_RELEASE = --defsym RELEASE=1
+endif
+
+# Bebbo's package usually installs itself there
+GCC_BIN = C:\amiga-gcc\bin
+ASM_BASE = $(GCC_BIN)/m68k-amigaos-as -c --defsym __amiga__=1
+ASM = $(ASM_BASE) -m68000 $(OPT_RELEASE) 
+ASM_020 = $(ASM_BASE) -m68020 
+MAIN_OBJ = amiga.o
+WHDLOADER_1MB = ..\$(PROGNAME)_1mb.slave
+WHDLOADER_1MB_CHIP = ..\$(PROGNAME)_1mb_chip.slave
+WHDLOADER_2MB = ..\$(PROGNAME)_2mb.slave
+WHDLOADER_2MB_CHIP = ..\$(PROGNAME)_2mb_chip.slave
+ASSETS = ..\assets\amiga
+AMIGASRC = amiga
+SOURCE_1MB = $(AMIGASRC)/$(PROGNAME)1MBHD.s
+SOURCE_2MB = $(AMIGASRC)/$(PROGNAME)2MBHD.s
+
+
+
+# those 2 are defined for my PC, should include whdload.i
+# and system includes.
+HDBASE = K:\jff\AmigaHD
+WHDBASE = $(HDBASE)\PROJETS\HDInstall\DONE\WHDLoad
+WHDASM = vasmm68k_mot -DDATETIME -I$(HDBASE)/amiga39_JFF_OS/include -I$(WHDBASE)\Include -I$(WHDBASE) -devpac -nosym -Fhunkexe
+
+
+# leave MAIN_OBJ first
+SHARED_OBJS = $(MAIN_OBJ) $(PROGNAME)_sub.o $(PROGNAME).o $(PROGNAME)_ram.o ptplayer_3chan.o  graphics.o $(PROGNAME)_rom.o vbr.o ReadJoyPad.o
+OBJS_SHELL = shell.o
+OBJS_2MB = $(SHARED_OBJS) mixer_22050.o sounds_2mb.o sound_entries_2mb.o sound_code_2mb.o
+OBJS_1MB = $(SHARED_OBJS) mixer_8192.o sounds_1mb.o  sound_entries_1mb.o sound_code_1mb.o
+
+all: $(MAIN) $(MAIN)_2mb $(MAIN)_1mb $(WHDLOADER_2MB) $(WHDLOADER_2MB_CHIP) $(WHDLOADER_1MB) $(WHDLOADER_1MB_CHIP) $(AMIGASRC)/graphics.68k $(AMIGASRC)/sounds_2mb.68k
+
+
+
+clean:
+	del $(OBJS_2MB) $(OBJS_1MB) "$(MAIN)_2mb" "$(MAIN)_1mb"
+	
+$(AMIGASRC)/graphics.68k: $(ASSETS)/convert_graphics.py
+	cmd /c $(ASSETS)\convert_graphics.py
+
+$(AMIGASRC)/sounds_1mb.68k: $(ASSETS)/convert_sounds.py 
+	cmd /c $(ASSETS)\convert_sounds.py
+	del sound_entries_*.o sounds_*.o
+
+$(AMIGASRC)/sounds_2mb.68k: $(ASSETS)/convert_sounds.py 
+	cmd /c $(ASSETS)\convert_sounds.py
+	del sound_entries_*.o sounds_*.o
+	
+
+$(MAIN): $(OBJS_SHELL)
+	$(GCC_BIN)/m68k-amigaos-ld $(OPT_RELEASE_LINK) -o $(MAIN) $(OBJS_SHELL)
+	
+$(MAIN)_1mb: $(OBJS_1MB)
+	$(GCC_BIN)/m68k-amigaos-ld $(OPT_RELEASE_LINK) -o $(MAIN)_1mb $(OBJS_1MB)
+$(MAIN)_2mb: $(OBJS_2MB)
+	$(GCC_BIN)/m68k-amigaos-ld $(OPT_RELEASE_LINK) -o $(MAIN)_2mb $(OBJS_2MB)
+
+$(PROGNAME)_ram.o: $(PROGNAME)_ram.68k $(PROGNAME).inc
+	$(ASM) $(PROGNAME)_ram.68k -o $(PROGNAME)_ram.o
+shell.o: $(AMIGASRC)/shell.68k
+	$(ASM) -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/shell.68k -o shell.o
+$(PROGNAME)_rom.o: $(PROGNAME)_rom.68k
+	$(ASM) $(PROGNAME)_rom.68k -o $(PROGNAME)_rom.o
+$(PROGNAME).o: $(PROGNAME).68k $(PROGNAME).inc data.inc sounds.inc
+	$(ASM) $(OPT_RELEASE) $(PROGNAME).68k -o $(PROGNAME).o
+$(PROGNAME)_sub.o: $(PROGNAME)_sub.68k  $(PROGNAME).inc $(PROGNAME)_sub.inc
+	$(ASM) $(PROGNAME)_sub.68k -o $(PROGNAME)_sub.o
+amiga.o: $(AMIGASRC)/amiga.68k $(AMIGASRC)/converter.68k $(AMIGASRC)/mixer.inc $(PROGNAME).inc $(PROGNAME)_sub.inc data.inc $(AMIGASRC)/ReadJoyPad.i $(AMIGASRC)/palette.68k  $(AMIGASRC)/mixer_config.inc $(AMIGASRC)/sound_entries_2mb.68k
+	$(ASM) -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/amiga.68k -o amiga.o
+mixer_22050.o: $(AMIGASRC)/mixer.68k $(AMIGASRC)/mixer_config.inc
+	$(ASM) --defsym mixer_period=161 -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/mixer.68k -o mixer_22050.o
+mixer_8192.o: $(AMIGASRC)/mixer.68k $(AMIGASRC)/mixer_config.inc
+	$(ASM) --defsym mixer_period=436 -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/mixer.68k -o mixer_8192.o
+converter.o: 
+	$(ASM) -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/converter.68k -o converter.o
+sound_code_2mb.o: $(AMIGASRC)/sound_code.68k $(PROGNAME).inc $(AMIGASRC)/mixer_config.inc $(AMIGASRC)/mixer.inc
+	$(ASM) --defsym mixer_period=161 -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/sound_code.68k -o sound_code_2mb.o
+sound_code_1mb.o: $(AMIGASRC)/sound_code.68k $(PROGNAME).inc
+	$(ASM) --defsym mixer_period=436 -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/sound_code.68k -o sound_code_1mb.o
+vbr.o: $(AMIGASRC)/vbr.68k
+	$(ASM_020) -Iamiga $(AMIGASRC)/vbr.68k -o vbr.o
+ptplayer_3chan.o: $(AMIGASRC)/ptplayer_3chan.68k
+	$(ASM) -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/ptplayer_3chan.68k -o ptplayer_3chan.o
+ptplayer.o: $(AMIGASRC)/ptplayer.68k
+	$(ASM) -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/ptplayer.68k -o ptplayer.o
+sounds_1mb.o: $(AMIGASRC)/sounds_1mb.68k
+	$(ASM) -I$(AMIGASRC) $(AMIGASRC)/sounds_1mb.68k -o sounds_1mb.o
+sound_entries_1mb.o: $(AMIGASRC)/sound_entries_1mb.68k
+	$(ASM) -I$(AMIGASRC) $(AMIGASRC)/sound_entries_1mb.68k -o sound_entries_1mb.o
+sound_entries_2mb.o: $(AMIGASRC)/sound_entries_2mb.68k
+	$(ASM) -I$(AMIGASRC) $(AMIGASRC)/sound_entries_2mb.68k -o sound_entries_2mb.o
+sounds_2mb.o: $(AMIGASRC)/sounds_2mb.68k
+	$(ASM) -I$(AMIGASRC) $(AMIGASRC)/sounds_2mb.68k -o sounds_2mb.o
+ReadJoyPad.o: $(AMIGASRC)/ReadJoyPad.68k amiga/ReadJoyPad.i
+	$(ASM) -I$(AMIGASRC) -I$(AMIGASRC)/mit_includes $(AMIGASRC)/ReadJoyPad.68k -o ReadJoyPad.o
+graphics.o: $(AMIGASRC)/graphics.68k $(PROGNAME).inc
+	$(ASM) $(AMIGASRC)/graphics.68k -o graphics.o
+
+
+$(WHDLOADER_1MB) : $(SOURCE_1MB)
+	wdate.py> datetime
+	$(WHDASM) -o $(WHDLOADER_1MB) $(SOURCE_1MB)
+	
+$(WHDLOADER_1MB_CHIP) : $(SOURCE_1MB)
+	wdate.py> datetime
+	$(WHDASM) -DCHIP_ONLY -o $(WHDLOADER_1MB_CHIP) $(SOURCE_1MB)
+$(WHDLOADER_2MB) : $(SOURCE_2MB)
+	wdate.py> datetime
+	$(WHDASM) -o $(WHDLOADER_2MB) $(SOURCE_2MB)
+	
+$(WHDLOADER_2MB_CHIP) : $(SOURCE_2MB)
+	wdate.py> datetime
+	$(WHDASM) -DCHIP_ONLY -o $(WHDLOADER_2MB_CHIP) $(SOURCE_2MB)
