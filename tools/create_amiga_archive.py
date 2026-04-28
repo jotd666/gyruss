@@ -4,6 +4,13 @@ import subprocess,os,glob,shutil,pathlib
 progdir = pathlib.Path(os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir)))
 
 gamename = "gyruss"
+
+assets_dir = os.path.join(progdir,"assets","amiga")
+
+subprocess.check_call(["cmd","/c","convert_graphics.py"],cwd=assets_dir)
+subprocess.check_call(["cmd","/c","convert_sounds.py"],cwd=assets_dir)
+
+
 # JOTD path for cranker, adapt to whatever your path is :)
 os.environ["PATH"] += os.pathsep+r"K:\progs\cli"
 

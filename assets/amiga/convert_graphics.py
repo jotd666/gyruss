@@ -9,11 +9,11 @@ sprite_names,grouped_sprites = get_sprite_names()
 NB_SPRITES = 0x200
 NB_TILES = 0x200
 
-dump_it = True
+dump_it = False
 
 if dump_it:
     if not os.path.exists(dump_dir):
-        os.mkdir(dump_dir)
+        os.makedirs(dump_dir)
         with open(os.path.join(dump_dir,".gitignore"),"w") as f:
             f.write("*")
 
@@ -189,10 +189,11 @@ for j,sprite_sheet_dict in enumerate(sprite_sheet_dicts):
         sprite_palette.update(sp)
 
 sprite_dump_dir = dump_dir / "sprites"
-for sd in ["16x8","16x16"]:
-    for p in (sprite_dump_dir / sd).glob("*"):
-        p.unlink()
-    (sprite_dump_dir / sd).mkdir(exist_ok=True)
+if dump_it:
+    for sd in ["16x8","16x16"]:
+        for p in (sprite_dump_dir / sd).glob("*"):
+            p.unlink()
+        (sprite_dump_dir / sd).mkdir(exist_ok=True,parents=True)
 
 for palette_index,sprite_set in enumerate(sprite_set_list):
     # rework tiles which are grouped now that 2x256 list is composed
