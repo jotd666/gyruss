@@ -2931,7 +2931,6 @@ mirror_flipped_tile:
 
 mirror_jump_table:
 	.long	standard_tile
-
 	.long	flipped_tile
 	.long	mirror_tile
 	.long	mirror_flipped_tile
